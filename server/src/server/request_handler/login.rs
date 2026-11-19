@@ -89,7 +89,7 @@ pub async fn authenticate(server: &Server, packet: &PacketCaLogin) -> Box<dyn Pa
             ac_accept_login.set_user_level(rng.gen::<u32>());
             ac_accept_login.set_sex(1);
             let mut server_addr = ServerAddr::new(GlobalConfigService::instance().packetver());
-            server_addr.set_ip(16777343); // 7F 00 00 01 -> to little endian -> 01 00 00 7F
+            server_addr.set_ip(server.configuration.server.advertised_ip_packet_value());
             server_addr.set_port(server.configuration.server.port as i16);
             let mut name_chars = [0 as char; 20];
             "Rust ragnarok".chars().enumerate().for_each(|(i, c)| name_chars[i] = c);
@@ -106,7 +106,7 @@ pub async fn authenticate(server: &Server, packet: &PacketCaLogin) -> Box<dyn Pa
             ac_accept_login2.set_user_level(rng.gen::<u32>());
             ac_accept_login2.set_sex(1);
             let mut server_addr = ServerAddr2::new(GlobalConfigService::instance().packetver());
-            server_addr.set_ip(16777343); // 7F 00 00 01 -> to little endian -> 01 00 00 7F
+            server_addr.set_ip(server.configuration.server.advertised_ip_packet_value());
             server_addr.set_port(server.configuration.server.port as i16);
             let mut name_chars = [0 as char; 20];
             "Rust ragnarok".chars().enumerate().for_each(|(i, c)| name_chars[i] = c);

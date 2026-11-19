@@ -8,7 +8,8 @@
     "log_level": "info",
     "trace_packet": false,
     "packetver": 20120229,
-    "port": 6901
+    "port": 6901,
+    "advertised_ip": "127.0.0.1"
   },
   "database": {
     "db": "ragnarok",

@@ -1,4 +1,5 @@
 use std::collections::{BTreeMap, HashMap};
+use std::net::Ipv4Addr;
 use std::path::Path;
 use std::{env, fs};
 
@@ -43,6 +44,20 @@ pub struct ServerConfig {
     pub port: u16,
     pub enable_visual_debugger: bool,
     pub packetver: u32,
+    /// Address sent to clients for the char and map servers after login.
+    /// Defaults to 127.0.0.1, which only works for a client on the same
+    /// machine (or behind a proxy running there). Set it to the server's
+    /// LAN or public address for remote clients.
+    #[serde(default)]
+    pub advertised_ip: Option<Ipv4Addr>,
+}
+
+impl ServerConfig {
+    /// `advertised_ip` as packets carry it: the octets in order, read as a
+    /// little-endian u32 (127.0.0.1 -> 0x0100007F).
+    pub fn advertised_ip_packet_value(&self) -> u32 {
+        u32::from_le_bytes(self.advertised_ip.unwrap_or(Ipv4Addr::LOCALHOST).octets())
+    }
 }
 
 #[derive(Deserialize, Debug, SettersAll, Clone)]
@@ -1094,5 +1109,49 @@ mod tests {
                 assert!(!skill.bonus_to_target.is_empty());
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod advertised_ip_tests {
+    use super::*;
+
+    fn server_config(advertised_ip: Option<Ipv4Addr>) -> ServerConfig {
+        ServerConfig {
+            log_level: None,
+            trace_packet: false,
+            log_level_module_override: vec![],
+            accounts: vec![],
+            port: 6901,
+            enable_visual_debugger: false,
+            packetver: 20120307,
+            advertised_ip,
+        }
+    }
+
+    #[test]
+    fn defaults_to_localhost_as_before() {
+        assert_eq!(server_config(None).advertised_ip_packet_value(), 16777343);
+    }
+
+    #[test]
+    fn encodes_octets_in_order() {
+        let ip = Ipv4Addr::new(192, 168, 50, 210);
+        let value = server_config(Some(ip)).advertised_ip_packet_value();
+        assert_eq!(value.to_le_bytes(), [192, 168, 50, 210]);
+    }
+
+    #[test]
+    fn parses_from_json_and_is_optional() {
+        let with: ServerConfig = serde_json::from_str(
+            r#"{"trace_packet":false,"log_level_module_override":[],"accounts":[],"port":6901,"enable_visual_debugger":false,"packetver":20120307,"advertised_ip":"10.0.0.5"}"#,
+        )
+        .unwrap();
+        assert_eq!(with.advertised_ip, Some(Ipv4Addr::new(10, 0, 0, 5)));
+        let without: ServerConfig = serde_json::from_str(
+            r#"{"trace_packet":false,"log_level_module_override":[],"accounts":[],"port":6901,"enable_visual_debugger":false,"packetver":20120307}"#,
+        )
+        .unwrap();
+        assert_eq!(without.advertised_ip, None);
     }
 }
